@@ -1,30 +1,4 @@
-@addField(PlayerPuppet)
-private let m_streetVendorsInputListener: ref<GlobalInputListener>;
-
-@wrapMethod(PlayerPuppet)
-protected cb func OnGameAttached() -> Bool {
-    wrappedMethod();
-
-    this.m_streetVendorsInputListener = new GlobalInputListener();
-    this.m_streetVendorsInputListener.game = this.GetGame();
-    this.RegisterInputListener(this.m_streetVendorsInputListener);
-}
-
-@wrapMethod(PlayerPuppet)
-protected cb func OnDetach() -> Bool {
-    wrappedMethod();
-
-    this.UnregisterInputListener(this.m_streetVendorsInputListener);
-    this.m_streetVendorsInputListener = null;
-}
-
-@addField(PlayerPuppet)
-let m_lookingAtStreetVendor: Bool;
-@addField(PlayerPuppet)
-let m_readyToInteractWithStreetVendor: Bool;
-
 public class StreetVendorsSystem extends ScriptableSystem {
-
     private func OnAttach() -> Void {
         let interactionPromptCallback: ref<StreetVendorsInteractionPrompt_Callback> = new StreetVendorsInteractionPrompt_Callback();
         interactionPromptCallback.gameInstance = this.GetGameInstance();
@@ -46,8 +20,6 @@ public class GlobalInputListener {
                 let vendorGameObject: ref<GameObject> = GetLookAtStreetVendor(this.game);
                 let vendor: ref<Vendor> = MarketSystem.GetInstance(this.game).GetVendor(vendorGameObject);
                 let marketSystem: ref<MarketSystem> = MarketSystem.GetInstance(this.game);
-                //let vendorType: String = ToString(vendor.GetVendorType());
-                //LogChannel(n"DEBUG", ToString(pawg));
                 if(!ArrayContains(marketSystem.m_readyStreetVendors, vendor)){
                     for igsPools in marketSystem.m_igsPools {
                         if(Equals(igsPools.vendorTypeTarget, vendor.GetVendorType())){
@@ -91,6 +63,41 @@ public static final func CreateIGSPool(vendorType: gamedataVendorType, itemPool:
     output.itemQuantityMin = itemQuantityMin;
     output.itemQuantityMax = itemQuantityMax;
     return output;
+}
+
+public static final func InitNewIGSPool(gameInstance: GameInstance, igsPool: ref<igsPool>) -> Bool {
+    let marketSystem = MarketSystem.GetInstance(gameInstance);
+    if(ArrayContains(marketSystem.m_igsPools, igsPool)) {
+        return false;
+    }else{
+        ArrayPush(marketSystem.m_igsPools, igsPool);
+        return true;
+    }
+}
+
+/*PlayerPuppet*/
+@addField(PlayerPuppet)
+private let m_streetVendorsInputListener: ref<GlobalInputListener>;
+@addField(PlayerPuppet)
+let m_lookingAtStreetVendor: Bool;
+@addField(PlayerPuppet)
+let m_readyToInteractWithStreetVendor: Bool;
+
+@wrapMethod(PlayerPuppet)
+protected cb func OnGameAttached() -> Bool {
+    wrappedMethod();
+
+    this.m_streetVendorsInputListener = new GlobalInputListener();
+    this.m_streetVendorsInputListener.game = this.GetGame();
+    this.RegisterInputListener(this.m_streetVendorsInputListener);
+}
+
+@wrapMethod(PlayerPuppet)
+protected cb func OnDetach() -> Bool {
+    wrappedMethod();
+
+    this.UnregisterInputListener(this.m_streetVendorsInputListener);
+    this.m_streetVendorsInputListener = null;
 }
 
 /*MarketSystem*/
@@ -178,16 +185,6 @@ public static final func IsPlayerLookingAtStreetVendor(gameInstance: GameInstanc
         }
     }
     return false;
-}
-
-public static final func InitNewIGSPool(gameInstance: GameInstance, igsPool: ref<igsPool>) -> Bool {
-    let marketSystem = MarketSystem.GetInstance(gameInstance);
-    if(ArrayContains(marketSystem.m_igsPools, igsPool)) {
-        return false;
-    }else{
-        ArrayPush(marketSystem.m_igsPools, igsPool);
-        return true;
-    }
 }
 
 /*Inspired by psiberx's implementation*/
