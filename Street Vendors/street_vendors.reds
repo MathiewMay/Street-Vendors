@@ -9,7 +9,6 @@ public class StreetVendorsSystem extends ScriptableSystem {
     }
 }
 
-
 public class GlobalInputListener {
     let game: GameInstance;
     protected cb func OnAction(action: ListenerAction, consumer: ListenerActionConsumer) -> Bool {
@@ -17,7 +16,7 @@ public class GlobalInputListener {
             let blackboard: ref<IBlackboard> = GameInstance.GetBlackboardSystem(this.game).Get(GetAllBlackboardDefs().UI_System);
             let uiSystemBB: ref<UI_SystemDef> = GetAllBlackboardDefs().UI_System;
             if(!blackboard.GetBool(uiSystemBB.IsInMenu) && IsPlayerLookingAtStreetVendor(this.game)){
-                let vendorGameObject: ref<GameObject> = GetLookAtStreetVendor(this.game);
+                let vendorGameObject: ref<GameObject> = GetLookAtObject(this.game);
                 let vendor: ref<Vendor> = MarketSystem.GetInstance(this.game).GetVendor(vendorGameObject);
                 let marketSystem: ref<MarketSystem> = MarketSystem.GetInstance(this.game);
                 if(!ArrayContains(marketSystem.m_readyStreetVendors, vendor)){
@@ -122,8 +121,8 @@ private final func ClearStreetVendorInventory(vendor: ref<Vendor>) {
 
 @addMethod(MarketSystem)
 private final func GenerateStreetVendorInventory(vendor: ref<Vendor>, items: array<String>, mainQuantity: Vector2, mainMinMax: Vector2) {
-    vendor.m_lastInteractionTime = 0.0;
     vendor.m_inventoryInit = false;
+    vendor.m_lastInteractionTime = GameInstance.GetTimeSystem(this.GetGameInstance()).GetGameTimeStamp();
     if(!ArrayContains(this.m_initialIGSOnVendors, vendor)) {
         vendor.FillVendorInventory(false);
         this.ClearStreetVendorInventory(vendor);
@@ -162,7 +161,7 @@ public static final func GenerateRandomArray(array: array<String>, newLenght: In
     return generatedArray;
 }
 
-public static final func GetLookAtStreetVendor(gameInstance: GameInstance) -> ref<GameObject> {
+public static final func GetLookAtObject(gameInstance: GameInstance) -> ref<GameObject> {
     let player = GetPlayer(gameInstance);
     let targetingSystem: ref<TargetingSystem> = GameInstance.GetTargetingSystem(gameInstance);
     let targetObject: ref<GameObject> = targetingSystem.GetLookAtObject(player, false, false);
@@ -171,16 +170,24 @@ public static final func GetLookAtStreetVendor(gameInstance: GameInstance) -> re
 
 public static final func IsPlayerLookingAtStreetVendor(gameInstance: GameInstance) -> Bool {
     let player = GetPlayer(gameInstance);
-    let targetingSystem: ref<TargetingSystem> = GameInstance.GetTargetingSystem(gameInstance);
-    let targetObject: ref<GameObject> = targetingSystem.GetLookAtObject(player, false, false);
-    if(targetObject.IsNPC()){
-        let npc: ref<NPCPuppet> = targetObject as NPCPuppet;
-        let npcRecord: ref<Character_Record> = TweakDBInterface.GetCharacterRecord(GameObject.GetTDBID(targetObject));
-        let vendor: ref<Vendor> = MarketSystem.GetInstance(gameInstance).GetVendor(targetObject);
+    let targetObject: ref<GameObject> = GetLookAtObject(gameInstance);
+    let distance = Vector4.Distance(player.GetWorldPosition(), targetObject.GetWorldPosition());
+    if(IsGameObjectStreetVendor(gameInstance, targetObject) && distance < 3.0){
+        return true;
+    }
+    return false;
+}
+
+public static final func IsGameObjectStreetVendor(gameInstance: GameInstance, gameObject: ref<GameObject>) -> Bool {
+    let player = GetPlayer(gameInstance);
+    if(gameObject.IsNPC()){
+        let npc: ref<NPCPuppet> = gameObject as NPCPuppet;
+        let npcRecord: ref<Character_Record> = TweakDBInterface.GetCharacterRecord(GameObject.GetTDBID(gameObject));
+        let vendor: ref<Vendor> = MarketSystem.GetInstance(gameInstance).GetVendor(gameObject);
         let v_EntityID: EntityID = PersistentID.ExtractEntityID(vendor.GetVendorPersistentID());
         let v_IsDefined: Bool = EntityID.IsDefined(v_EntityID);
-        let distance = Vector4.Distance(player.GetWorldPosition(), targetObject.GetWorldPosition());
-        if(v_IsDefined && npcRecord.IsCrowd() && !targetObject.IsDead() && distance <= 3.0) {
+        let distance = Vector4.Distance(player.GetWorldPosition(), gameObject.GetWorldPosition());
+        if(v_IsDefined && npcRecord.IsCrowd()) {
             return true;
         }
     }
@@ -247,7 +254,7 @@ private func StreetVendorsInteractionPrompt(gameInstance: GameInstance) {
     }
     if(player.m_lookingAtStreetVendor) {
         player.m_lookingAtStreetVendor = false;
-        let vendorObject: ref<GameObject> = GetLookAtStreetVendor(gameInstance);
+        let vendorObject: ref<GameObject> = GetLookAtObject(gameInstance);
         let vendorCharRecord: ref<Character_Record> = TweakDBInterface.GetCharacterRecord(GameObject.GetTDBID(vendorObject));
         let output: String = GetLocalizedText("LocKey#553")+": "+GetLocalizedTextByKey(vendorCharRecord.DisplayName());
         CreateInteractionHub(gameInstance, output, n"UI_Apply", true);
