@@ -25,6 +25,7 @@ public class GlobalInputListener {
                             marketSystem.GenerateStreetVendorInventory(vendor, igsPools.itemPool, new Vector2(Cast<Float>(igsPools.poolQuantityMin), Cast<Float>(igsPools.poolQuantityMax)), new Vector2(Cast<Float>(igsPools.itemQuantityMin), Cast<Float>(igsPools.itemQuantityMax)));
                         }
                     }
+                    vendor.AddItemsToStock(MakeItemStack("Items.money", FloorF(RandRangeF(1450, 5230)), true));
                     ArrayPush(marketSystem.m_readyStreetVendors, vendor);
                 }
                 let marketRequest = new AttachVendorRequest();
@@ -126,7 +127,6 @@ private final func GenerateStreetVendorInventory(vendor: ref<Vendor>, items: arr
     if(!ArrayContains(this.m_initialIGSOnVendors, vendor)) {
         vendor.FillVendorInventory(false);
         this.ClearStreetVendorInventory(vendor);
-        vendor.AddItemsToStock(MakeItemStack("Items.money", FloorF(RandRangeF(3450, 8230)), true));
         ArrayPush(this.m_initialIGSOnVendors, vendor);
     }
     for item in GenerateRandomArray(items, FloorF(RandRangeF(mainQuantity.X, mainQuantity.Y))) {
